@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.backend.backendjar.repository.*;
 import org.springframework.stereotype.Service;
-
 import com.backend.backendjar.dto.FoodOrderRequest;
 import com.backend.backendjar.entity.DiningGroup;
 import com.backend.backendjar.entity.Food;
@@ -18,12 +18,6 @@ import com.backend.backendjar.entity.RestaurantTable;
 import com.backend.backendjar.entity.Seat;
 import com.backend.backendjar.exception.InvalidOperationException;
 import com.backend.backendjar.exception.ResourceNotFoundException;
-import com.backend.backendjar.repository.DiningGroupRepository;
-import com.backend.backendjar.repository.FoodRepository;
-import com.backend.backendjar.repository.GroupSeatRepository;
-import com.backend.backendjar.repository.OrderItemRepository;
-import com.backend.backendjar.repository.RestaurantTableRepository;
-import com.backend.backendjar.repository.SeatRepository;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.ValidationException;
@@ -456,6 +450,55 @@ public class DiningGroupService {
             
         } catch (Exception e) {
             log.error("Error adding items to group ID: {}", groupId, e);
+            throw e;
+        }
+    }
+
+    public List<DiningGroup> getPaidGroups() {
+        try {
+            log.info("Retrieving all paid groups");
+            List<DiningGroup> paidGroups = groupRepo.findByPaid(true);
+            log.info("Retrieved {} paid groups", paidGroups.size());
+            return paidGroups;
+        } catch (Exception e) {
+            log.error("Error retrieving paid groups", e);
+            throw new RuntimeException("Error retrieving paid groups", e);
+        }
+    }
+
+    public List<DiningGroup> getUnpaidGroups() {
+        try {
+            log.info("Retrieving all unpaid groups");
+            List<DiningGroup> unpaidGroups = groupRepo.findByPaid(false);
+            log.info("Retrieved {} unpaid groups", unpaidGroups.size());
+            return unpaidGroups;
+        } catch (Exception e) {
+            log.error("Error retrieving unpaid groups", e);
+            throw new RuntimeException("Error retrieving unpaid groups", e);
+        }
+    }
+
+    @Transactional
+    public DiningGroup markGroupAsPaid(Long groupId) {
+        try {
+            log.info("Marking group as paid: {}", groupId);
+            if (groupId == null) {
+                throw new ValidationException("Group ID cannot be null");
+            }
+            DiningGroup group = groupRepo.findById(groupId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Dining group not found with ID: " + groupId));
+            if (!group.isSubmitted()) {
+                throw new InvalidOperationException("Cannot mark an unsubmitted group as paid");
+            }
+            if (group.isPaid()) {
+                throw new InvalidOperationException("Group is already marked as paid");
+            }
+            group.setPaid(true);
+            DiningGroup savedGroup = groupRepo.save(group);
+            log.info("Group {} marked as paid", groupId);
+            return savedGroup;
+        } catch (Exception e) {
+            log.error("Error marking group as paid: {}", groupId, e);
             throw e;
         }
     }

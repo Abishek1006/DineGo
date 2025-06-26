@@ -3,45 +3,62 @@ import { View, Text, StyleSheet, FlatList, Pressable, Alert, RefreshControl } fr
 import { router } from 'expo-router';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../utils/config';
 
 type Group = {
   id: number;
   groupName: string;
-  tableNumber: string;
+  table: { tableNumber: string };
   createdAt: string;
   submitted: boolean;
+  paid: boolean;
 };
 
-type TabType = 'submitted' | 'unsubmitted' | 'all';
+type TabType = 'submitted' | 'unsubmitted' | 'all' | 'paid' | 'unpaid';
 
 export default function ManagerDashboard() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('submitted');
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [markingPaid, setMarkingPaid] = useState<number | null>(null);
 
   const fetchGroups = async (type: TabType) => {
+    setError(null);
     const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      setGroups([]);
+      setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+      return;
+    }
     try {
       let endpoint = '';
       switch (type) {
         case 'submitted':
-          endpoint = 'http://localhost:8080/api/groups/submitted';
+          endpoint = `${API_BASE_URL}/api/groups/submitted`;
           break;
         case 'unsubmitted':
-          endpoint = 'http://localhost:8080/api/groups/unsubmitted';
+          endpoint = `${API_BASE_URL}/api/groups/unsubmitted`;
           break;
         case 'all':
-          endpoint = 'http://localhost:8080/api/groups/all';
+          endpoint = `${API_BASE_URL}/api/groups/all`;
+          break;
+        case 'paid':
+          endpoint = `${API_BASE_URL}/api/groups/paid`;
+          break;
+        case 'unpaid':
+          endpoint = `${API_BASE_URL}/api/groups/unpaid`;
           break;
       }
-
       const res = await axios.get(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setGroups(res.data);
     } catch (err) {
       console.error(err);
-      Alert.alert('Failed to fetch groups');
+      setError('Failed to fetch groups');
+      setGroups([]);
     }
   };
 
@@ -58,12 +75,66 @@ export default function ManagerDashboard() {
 
   const handleGroupPress = (group: Group) => {
     if (group.submitted) {
-      // View submitted group details (read-only)
       router.push(`/screens/GroupDetailsScreen?groupId=${group.id}&readOnly=true`);
     } else {
-      // Edit unsubmitted group
       router.push(`/screens/EditGroupScreen?groupId=${group.id}`);
     }
+  };
+
+  const handleMarkAsPaid = async (groupId: number) => {
+    setMarkingPaid(groupId);
+    setError(null);
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+      setMarkingPaid(null);
+      return;
+    }
+    try {
+      await axios.put(`${API_BASE_URL}/api/groups/${groupId}/mark-paid`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchGroups(activeTab);
+    } catch (err) {
+      setError('Failed to mark as paid');
+    } finally {
+      setMarkingPaid(null);
+    }
+  };
+
+  const handleSubmitGroup = async (groupId: number) => {
+    Alert.alert(
+      'Submit Group',
+      'Are you sure you want to submit this group? You won\'t be able to edit it after submission.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Submit',
+          onPress: async () => {
+            setError(null);
+            try {
+              const token = await AsyncStorage.getItem('token');
+              if (!token) {
+                setError('Session expired. Please log in again.');
+                setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+                return;
+              }
+              await axios.post(`${API_BASE_URL}/api/groups/${groupId}/submit`, {}, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              fetchGroups(activeTab);
+            } catch (err: any) {
+              if (err.response && err.response.data && err.response.data.message) {
+                setError(`Failed to submit group: ${err.response.data.message}`);
+              } else {
+                setError('Failed to submit group');
+              }
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleDeleteGroup = async (groupId: number, groupName: string) => {
@@ -77,15 +148,18 @@ export default function ManagerDashboard() {
           style: 'destructive',
           onPress: async () => {
             const token = await AsyncStorage.getItem('token');
+            if (!token) {
+              setError('Session expired. Please log in again.');
+              setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+              return;
+            }
             try {
-              await axios.delete(`http://localhost:8080/api/groups/${groupId}`, {
+              await axios.delete(`${API_BASE_URL}/api/groups/${groupId}`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
-              Alert.alert('Group deleted successfully');
               fetchGroups(activeTab);
             } catch (err) {
-              console.error(err);
-              Alert.alert('Failed to delete group');
+              setError('Failed to delete group');
             }
           },
         },
@@ -122,9 +196,9 @@ export default function ManagerDashboard() {
           </Text>
         </View>
       </View>
-      <Text style={styles.groupDetail}>Table: {item.tableNumber}</Text>
+      <Text style={styles.groupDetail}>Table: {item.table?.tableNumber || '-'}</Text>
       <Text style={styles.groupDetail}>Created: {new Date(item.createdAt).toLocaleString()}</Text>
-      
+      <Text style={styles.groupDetail}>Paid: {item.paid ? 'Yes' : 'No'}</Text>
       <View style={styles.actionButtons}>
         <Pressable
           style={[styles.actionBtn, styles.viewBtn]}
@@ -134,13 +208,31 @@ export default function ManagerDashboard() {
             {item.submitted ? 'View Details' : 'Edit Group'}
           </Text>
         </Pressable>
-        
         {!item.submitted && (
+          <>
+            <Pressable
+              style={[styles.actionBtn, styles.deleteBtn]}
+              onPress={() => handleDeleteGroup(item.id, item.groupName)}
+            >
+              <Text style={styles.actionBtnText}>Delete</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.actionBtn, styles.submitBtn]}
+              onPress={() => handleSubmitGroup(item.id)}
+            >
+              <Text style={styles.actionBtnText}>Submit</Text>
+            </Pressable>
+          </>
+        )}
+        {item.submitted && !item.paid && (
           <Pressable
-            style={[styles.actionBtn, styles.deleteBtn]}
-            onPress={() => handleDeleteGroup(item.id, item.groupName)}
+            style={[styles.actionBtn, styles.paidBtn]}
+            onPress={() => handleMarkAsPaid(item.id)}
+            disabled={markingPaid === item.id}
           >
-            <Text style={styles.actionBtnText}>Delete</Text>
+            <Text style={styles.actionBtnText}>
+              {markingPaid === item.id ? 'Marking...' : 'Mark as Paid'}
+            </Text>
           </Pressable>
         )}
       </View>
@@ -150,6 +242,9 @@ export default function ManagerDashboard() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Manager Dashboard</Text>
+      {error && (
+        <Text style={{ color: 'red', textAlign: 'center', marginBottom: 10 }}>{error}</Text>
+      )}
       
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
@@ -177,6 +272,24 @@ export default function ManagerDashboard() {
         >
           <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>
             All Groups
+          </Text>
+        </Pressable>
+        
+        <Pressable
+          style={[styles.tab, activeTab === 'paid' && styles.activeTab]}
+          onPress={() => handleTabChange('paid')}
+        >
+          <Text style={[styles.tabText, activeTab === 'paid' && styles.activeTabText]}>
+            Paid
+          </Text>
+        </Pressable>
+        
+        <Pressable
+          style={[styles.tab, activeTab === 'unpaid' && styles.activeTab]}
+          onPress={() => handleTabChange('unpaid')}
+        >
+          <Text style={[styles.tabText, activeTab === 'unpaid' && styles.activeTabText]}>
+            Unpaid
           </Text>
         </Pressable>
       </View>
@@ -303,6 +416,9 @@ const styles = StyleSheet.create({
   deleteBtn: {
     backgroundColor: '#EF4444',
   },
+  submitBtn: {
+    backgroundColor: '#10B981',
+  },
   actionBtnText: {
     color: '#fff',
     fontSize: 14,
@@ -326,5 +442,8 @@ const styles = StyleSheet.create({
     color: '#fff', 
     fontWeight: 'bold', 
     fontSize: 16 
+  },
+  paidBtn: {
+    backgroundColor: '#10B981',
   },
 });

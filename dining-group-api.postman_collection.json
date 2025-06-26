@@ -1,0 +1,771 @@
+{
+	"info": {
+		"_postman_id": "dining-group-api-collection",
+		"name": "Dining Group API - Complete Test Suite",
+		"description": "Complete API test collection for Dining Group Management System with error handling",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Create Dining Group - Success",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test(\"Response has group details\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('id');",
+							"    pm.expect(jsonData).to.have.property('groupName');",
+							"    pm.expect(jsonData.submitted).to.eql(false);",
+							"    ",
+							"    // Store group ID for subsequent requests",
+							"    pm.environment.set('group_id', jsonData.id);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "[1, 2, 3]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/groups/create?tableId=1",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"create"
+					],
+					"query": [
+						{
+							"key": "tableId",
+							"value": "1"
+						}
+					]
+				},
+				"description": "Creates a new dining group for table 1 with seats 1, 2, and 3"
+			},
+			"response": []
+		},
+		{
+			"name": "2. Add Item to Group - First Item",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test(\"Item added successfully\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('id');",
+							"    pm.expect(jsonData.quantity).to.eql(2);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/groups/{{group_id}}/add-item?foodId=1&quantity=2",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"{{group_id}}",
+						"add-item"
+					],
+					"query": [
+						{
+							"key": "foodId",
+							"value": "1"
+						},
+						{
+							"key": "quantity",
+							"value": "2"
+						}
+					]
+				},
+				"description": "Adds 2 quantities of food item 1 to the group"
+			},
+			"response": []
+		},
+		{
+			"name": "3. Add Item to Group - Second Item",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test(\"Second item added successfully\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('id');",
+							"    pm.expect(jsonData.quantity).to.eql(1);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/groups/{{group_id}}/add-item?foodId=2&quantity=1",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"{{group_id}}",
+						"add-item"
+					],
+					"query": [
+						{
+							"key": "foodId",
+							"value": "2"
+						},
+						{
+							"key": "quantity",
+							"value": "1"
+						}
+					]
+				},
+				"description": "Adds 1 quantity of food item 2 to the group"
+			},
+			"response": []
+		},
+		{
+			"name": "4. Get Group Items",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Group has items\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.be.an('array');",
+							"    pm.expect(jsonData.length).to.be.greaterThan(0);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/groups/{{group_id}}/items",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"{{group_id}}",
+						"items"
+					]
+				},
+				"description": "Retrieves all items for the created group"
+			},
+			"response": []
+		},
+		{
+			"name": "5. Submit Group",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Group is submitted\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.submitted).to.eql(true);",
+							"    pm.expect(jsonData).to.have.property('submittedAt');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/groups/{{group_id}}/submit",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"{{group_id}}",
+						"submit"
+					]
+				},
+				"description": "Submits the group for processing"
+			},
+			"response": []
+		},
+		{
+			"name": "6. Get Submitted Groups",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response contains submitted groups\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.be.an('array');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/groups/submitted",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"submitted"
+					]
+				},
+				"description": "Retrieves all submitted groups"
+			},
+			"response": []
+		},
+		{
+			"name": "7. Create Second Group for Delete Test",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test(\"Second group created\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.environment.set('delete_group_id', jsonData.id);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "[4, 5]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/groups/create?tableId=2",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"create"
+					],
+					"query": [
+						{
+							"key": "tableId",
+							"value": "2"
+						}
+					]
+				},
+				"description": "Creates a second group for delete testing"
+			},
+			"response": []
+		},
+		{
+			"name": "8. Delete Group",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 204\", function () {",
+							"    pm.response.to.have.status(204);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/groups/{{delete_group_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"{{delete_group_id}}"
+					]
+				},
+				"description": "Deletes the second group (non-submitted groups only)"
+			},
+			"response": []
+		},
+		{
+			"name": "ERROR: Create Group - Invalid Table ID",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 404\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test(\"Error message contains table not found\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include('Table not found');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "[1, 2]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/groups/create?tableId=999",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"create"
+					],
+					"query": [
+						{
+							"key": "tableId",
+							"value": "999"
+						}
+					]
+				},
+				"description": "Tests error handling for invalid table ID"
+			},
+			"response": []
+		},
+		{
+			"name": "ERROR: Create Group - Empty Seat List",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Error message about empty seats\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include('cannot be null or empty');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "[]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/groups/create?tableId=1",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"create"
+					],
+					"query": [
+						{
+							"key": "tableId",
+							"value": "1"
+						}
+					]
+				},
+				"description": "Tests error handling for empty seat list"
+			},
+			"response": []
+		},
+		{
+			"name": "ERROR: Add Item - Invalid Group ID",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 404\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test(\"Error message about group not found\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include('Dining group not found');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/groups/999/add-item?foodId=1&quantity=2",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"999",
+						"add-item"
+					],
+					"query": [
+						{
+							"key": "foodId",
+							"value": "1"
+						},
+						{
+							"key": "quantity",
+							"value": "2"
+						}
+					]
+				},
+				"description": "Tests error handling for invalid group ID"
+			},
+			"response": []
+		},
+		{
+			"name": "ERROR: Add Item - Invalid Quantity",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Error message about quantity\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include('Quantity must be greater than 0');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/groups/{{group_id}}/add-item?foodId=1&quantity=0",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"{{group_id}}",
+						"add-item"
+					],
+					"query": [
+						{
+							"key": "foodId",
+							"value": "1"
+						},
+						{
+							"key": "quantity",
+							"value": "0"
+						}
+					]
+				},
+				"description": "Tests error handling for invalid quantity"
+			},
+			"response": []
+		},
+		{
+			"name": "ERROR: Submit Already Submitted Group",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Error message about already submitted\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include('already submitted');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/groups/{{group_id}}/submit",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"{{group_id}}",
+						"submit"
+					]
+				},
+				"description": "Tests error handling for submitting already submitted group"
+			},
+			"response": []
+		},
+		{
+			"name": "ERROR: Add Item to Submitted Group",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Error message about submitted group\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include('Cannot add items to a submitted group');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/groups/{{group_id}}/add-item?foodId=3&quantity=1",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"groups",
+						"{{group_id}}",
+						"add-item"
+					],
+					"query": [
+						{
+							"key": "foodId",
+							"value": "3"
+						},
+						{
+							"key": "quantity",
+							"value": "1"
+						}
+					]
+				},
+				"description": "Tests error handling for adding items to submitted group"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "group_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "delete_group_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

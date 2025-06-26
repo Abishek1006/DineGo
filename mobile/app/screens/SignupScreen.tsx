@@ -3,6 +3,8 @@ import { View, TextInput, Button, Text, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { router } from 'expo-router';
+import { API_BASE_URL } from '../utils/config';
+import { Picker } from '@react-native-picker/picker';
 
 export default function SignupScreen() {
   const [username, setUsername] = useState('');
@@ -10,6 +12,7 @@ export default function SignupScreen() {
   const [role, setRole] = useState('WAITER'); // default
   const [error, setError] = useState('');
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -18,7 +21,7 @@ export default function SignupScreen() {
         setIsAuthorized(true);
       } else {
         Alert.alert("Access Denied", "Only MANAGER or ADMIN can access this page.");
-        router.replace('/screens/ManagerDashboard'); // Fix: redirect to appropriate dashboard
+        router.replace('/screens/ManagerDashboard');
       }
     };
     checkAccess();

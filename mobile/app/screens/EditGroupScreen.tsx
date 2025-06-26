@@ -11,6 +11,8 @@ import {
 import axios from 'axios';
 import { useLocalSearchParams, router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../utils/config';
+import { getToken } from '../utils/session';
 
 type OrderItem = {
   id: number;
@@ -26,7 +28,9 @@ type Group = {
   id: number;
   groupName: string;
   submitted: boolean;
+  paid: boolean;
   createdAt: string;
+  table: { tableNumber: string };
 };
 
 export default function EditGroupScreen() {
@@ -35,24 +39,36 @@ export default function EditGroupScreen() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchGroupDetails = async () => {
+    setError(null);
     const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      setGroup(null);
+      setItems([]);
+      setLoading(false);
+      setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+      return;
+    }
     try {
       // Fetch group info
-      const groupRes = await axios.get(`http://localhost:8080/api/groups/${groupId}`, {
+      const groupRes = await axios.get(`${API_BASE_URL}/api/groups/${groupId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setGroup(groupRes.data);
 
       // Fetch group items
-      const itemsRes = await axios.get(`http://localhost:8080/api/groups/${groupId}/items`, {
+      const itemsRes = await axios.get(`${API_BASE_URL}/api/groups/${groupId}/items`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setItems(itemsRes.data);
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to fetch group details');
+      setError('Failed to fetch group details');
+      setGroup(null);
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -69,16 +85,18 @@ export default function EditGroupScreen() {
       handleRemoveItem(itemId);
       return;
     }
-
     const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+      return;
+    }
     try {
       await axios.put(
-        `http://localhost:8080/api/groups/${groupId}/items/${itemId}?quantity=${newQuantity}`,
+        `${API_BASE_URL}/api/groups/${groupId}/items/${itemId}?quantity=${newQuantity}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
-      // Update local state
       setItems(prev =>
         prev.map(item =>
           item.id === itemId ? { ...item, quantity: newQuantity } : item
@@ -86,7 +104,7 @@ export default function EditGroupScreen() {
       );
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to update quantity');
+      setError('Failed to update quantity');
     }
   };
 
@@ -101,17 +119,20 @@ export default function EditGroupScreen() {
           style: 'destructive',
           onPress: async () => {
             const token = await AsyncStorage.getItem('token');
+            if (!token) {
+              setError('Session expired. Please log in again.');
+              setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+              return;
+            }
             try {
-              await axios.delete(`http://localhost:8080/api/groups/${groupId}/items/${itemId}`, {
+              await axios.delete(`${API_BASE_URL}/api/groups/${groupId}/items/${itemId}`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
-              
-              // Update local state
               setItems(prev => prev.filter(item => item.id !== itemId));
               Alert.alert('Success', 'Item removed successfully');
             } catch (err) {
               console.error(err);
-              Alert.alert('Error', 'Failed to remove item');
+              setError('Failed to remove item');
             }
           },
         },
@@ -125,38 +146,41 @@ export default function EditGroupScreen() {
 
   const handleSubmitGroup = async () => {
     if (items.length === 0) {
-      Alert.alert('Error', 'Cannot submit group without any items');
+      setError('Cannot submit group without any items');
       return;
     }
-
-    Alert.alert(
-      'Submit Group',
-      'Are you sure you want to submit this group? You won\'t be able to edit it after submission.',
-      [
-        { text: 'Cancel', style: 'cancel' },
+    setError(null);
+    setLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) {
+        setError('Session expired. Please log in again.');
+        setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+        setLoading(false);
+        return;
+      }
+      await axios.post(
+        `${API_BASE_URL}/api/groups/${groupId}/submit`,
+        {},
         {
-          text: 'Submit',
-          onPress: async () => {
-            const token = await AsyncStorage.getItem('token');
-            try {
-              await axios.post(`http://localhost:8080/api/groups/${groupId}/submit`, {}, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              
-              Alert.alert('Success', 'Group submitted successfully!', [
-                {
-                  text: 'OK',
-                  onPress: () => router.back(),
-                },
-              ]);
-            } catch (err) {
-              console.error(err);
-              Alert.alert('Error', 'Failed to submit group');
-            }
-          },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      Alert.alert('Success', 'Group submitted successfully!', [
+        {
+          text: 'OK',
+          onPress: () => router.back(),
         },
-      ]
-    );
+      ]);
+    } catch (err: any) {
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(`Failed to submit group: ${err.response.data.message}`);
+      } else {
+        setError('Failed to submit group');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const calculateTotal = () => {
@@ -175,6 +199,14 @@ export default function EditGroupScreen() {
     );
   }
 
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={{ color: 'red', textAlign: 'center' }}>{error}</Text>
+      </View>
+    );
+  }
+
   if (!group) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -182,6 +214,8 @@ export default function EditGroupScreen() {
       </View>
     );
   }
+
+  const isPaid = group.paid;
 
   const renderItem = ({ item }: { item: OrderItem }) => (
     <View style={styles.itemCard}>
@@ -194,14 +228,16 @@ export default function EditGroupScreen() {
         <View style={styles.quantityContainer}>
           <Pressable
             style={styles.quantityBtn}
-            onPress={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+            onPress={() => !isPaid && handleUpdateQuantity(item.id, item.quantity - 1)}
+            disabled={isPaid}
           >
             <Text style={styles.quantityBtnText}>-</Text>
           </Pressable>
           <Text style={styles.quantityText}>{item.quantity}</Text>
           <Pressable
             style={styles.quantityBtn}
-            onPress={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+            onPress={() => !isPaid && handleUpdateQuantity(item.id, item.quantity + 1)}
+            disabled={isPaid}
           >
             <Text style={styles.quantityBtnText}>+</Text>
           </Pressable>
@@ -209,8 +245,8 @@ export default function EditGroupScreen() {
         
         <View style={styles.itemActions}>
           <Text style={styles.subtotal}>₹{item.food.price * item.quantity}</Text>
-          <Pressable onPress={() => handleRemoveItem(item.id)}>
-            <Text style={styles.removeText}>Remove</Text>
+          <Pressable onPress={() => !isPaid && handleRemoveItem(item.id)} disabled={isPaid}>
+            <Text style={[styles.removeText, isPaid && { color: '#ccc' }]}>Remove</Text>
           </Pressable>
         </View>
       </View>
@@ -223,19 +259,20 @@ export default function EditGroupScreen() {
       
       <View style={styles.groupInfo}>
         <Text style={styles.groupName}>{group.groupName}</Text>
-        <Text style={styles.groupDetail}>
-          Created: {new Date(group.createdAt).toLocaleString()}
-        </Text>
-        <Text style={styles.groupDetail}>
-          Status: {group.submitted ? 'Submitted' : 'Draft'}
-        </Text>
+        <Text style={styles.groupDetail}>Table: {group.table?.tableNumber || '-'}</Text>
+        <Text style={styles.groupDetail}>Created: {new Date(group.createdAt).toLocaleString()}</Text>
+        <Text style={styles.groupDetail}>Status: {group.submitted ? 'Submitted' : 'Draft'}</Text>
+        <Text style={styles.groupDetail}>Paid: {group.paid ? 'Yes' : 'No'}</Text>
+        {isPaid && <Text style={{ color: 'green', fontWeight: 'bold', marginTop: 8 }}>This group is paid. Editing is disabled.</Text>}
       </View>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Order Items ({items.length})</Text>
-        <Pressable style={styles.addBtn} onPress={handleAddMoreItems}>
-          <Text style={styles.addBtnText}>+ Add Items</Text>
-        </Pressable>
+        {!isPaid && (
+          <Pressable style={styles.addBtn} onPress={handleAddMoreItems}>
+            <Text style={styles.addBtnText}>+ Add Items</Text>
+          </Pressable>
+        )}
       </View>
 
       <FlatList
@@ -245,9 +282,11 @@ export default function EditGroupScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No items in this group</Text>
-            <Pressable style={styles.addItemsBtn} onPress={handleAddMoreItems}>
-              <Text style={styles.addItemsBtnText}>Add Items</Text>
-            </Pressable>
+            {!isPaid && (
+              <Pressable style={styles.addItemsBtn} onPress={handleAddMoreItems}>
+                <Text style={styles.addItemsBtnText}>Add Items</Text>
+              </Pressable>
+            )}
           </View>
         }
         refreshControl={
@@ -263,11 +302,11 @@ export default function EditGroupScreen() {
       )}
 
       <View style={styles.actionButtons}>
-                <Pressable style={styles.backBtn} onPress={() => router.back()}>
+        <Pressable style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backBtnText}>Back</Text>
         </Pressable>
         
-        {items.length > 0 && !group.submitted && (
+        {items.length > 0 && !group.submitted && !isPaid && (
           <Pressable style={styles.submitBtn} onPress={handleSubmitGroup}>
             <Text style={styles.submitBtnText}>Submit Group</Text>
           </Pressable>

@@ -1,74 +1,101 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getToken } from '../utils/session';
+import { API_BASE_URL } from '../utils/config';
 
-const seatNumbers = ['S1', 'S2', 'S3', 'S4'];
+// SeatSelection: Fetches seats for the selected table dynamically from backend. Uses correct seat IDs. Types match backend DTOs. Robust error/session handling included.
+
+type Seat = { id: number; seatNumber: string };
+
+type Table = { id: number; tableNumber: number; seats: Seat[] };
 
 export default function SeatSelection() {
   const { tableId } = useLocalSearchParams<{ tableId: string }>();
-  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [seats, setSeats] = useState<Seat[]>([]);
+  const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const toggleSeat = (seat: string) => {
+  useEffect(() => {
+    const fetchSeats = async () => {
+      setError(null);
+      try {
+        const token = await getToken();
+        if (!token) throw new Error('Session expired. Please log in again.');
+        const res = await axios.get(`${API_BASE_URL}/api/tables`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const table = res.data.find((t: Table) => t.id.toString() === tableId);
+        if (!table) {
+          setError('Table not found');
+          setSeats([]);
+        } else {
+          setSeats(table.seats);
+        }
+      } catch (err) {
+        setError('Failed to fetch seats');
+        setSeats([]);
+      }
+    };
+    fetchSeats();
+  }, [tableId]);
+
+  const toggleSeat = (seatId: number) => {
     setSelectedSeats(prev =>
-      prev.includes(seat) ? prev.filter(s => s !== seat) : [...prev, seat]
+      prev.includes(seatId) ? prev.filter(s => s !== seatId) : [...prev, seatId]
     );
   };
 
   const handleCreateGroup = async () => {
     if (selectedSeats.length === 0) {
-      Alert.alert('Select at least one seat');
+      setError('Select at least one seat');
       return;
     }
-
     try {
-      const token = await AsyncStorage.getItem('token');
-      
-      // Convert seat strings to seat IDs (assuming S1=1, S2=2, etc.)
-      const seatIds = selectedSeats.map(seat => parseInt(seat.replace('S', '')));
-      
-      // Extract table number from tableId (assuming T1=1, T2=2, etc.)
-      const tableNumber = parseInt(tableId?.replace('T', '') || '1');
-
-      // Fix: Send tableId as query parameter and seatIds as request body
+      const token = await getToken();
+      if (!token) {
+        setError('Session expired. Please log in again.');
+        setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+        return;
+      }
       const res = await axios.post(
-        `http://localhost:8080/api/groups/create?tableId=${tableNumber}`,
-        seatIds, // Send array of seat IDs directly as request body
+        `${API_BASE_URL}/api/groups/create?tableId=${tableId}`,
+        selectedSeats,
         {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
         }
       );
-
       const groupId = res.data.id;
       router.push(`/screens/GroupItemsScreen?groupId=${groupId}`);
-    } catch (err) {
-      console.error('Error creating group:', err);
+    } catch (err: any) {
       if (err.response) {
-        console.error('Error response:', err.response.data);
-        Alert.alert('Error', `Failed to create group: ${err.response.data.message || err.response.status}`);
+        setError(`Failed to create group: ${err.response.data.message || err.response.status}`);
       } else {
-        Alert.alert('Error', 'Failed to create group');
+        setError('Failed to create group');
       }
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Select Seats for {tableId}</Text>
+      <Text style={styles.heading}>Select Seats</Text>
+      {error && (
+        <Text style={{ color: 'red', textAlign: 'center', marginBottom: 10 }}>{error}</Text>
+      )}
       <View style={styles.seatsContainer}>
-        {seatNumbers.map(seat => {
-          const isSelected = selectedSeats.includes(seat);
+        {seats.map(seat => {
+          const isSelected = selectedSeats.includes(seat.id);
           return (
             <Pressable
-              key={seat}
+              key={seat.id}
               style={[styles.seat, isSelected && styles.selectedSeat]}
-              onPress={() => toggleSeat(seat)}
+              onPress={() => toggleSeat(seat.id)}
             >
-              <Text style={styles.seatText}>{seat}</Text>
+              <Text style={styles.seatText}>{seat.seatNumber}</Text>
             </Pressable>
           );
         })}

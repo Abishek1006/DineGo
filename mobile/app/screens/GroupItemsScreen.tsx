@@ -11,7 +11,8 @@ import {
 import axios from 'axios';
 import { useLocalSearchParams, router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { API_BASE_URL } from '../utils/config';
+import { getToken } from '../utils/session';
 type FoodItem = {
   id: number;
   name: string;
@@ -29,17 +30,26 @@ export default function GroupItemsScreen() {
   const [menu, setMenu] = useState<FoodItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchMenu = async () => {
+    setError(null);
     const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      setMenu([]);
+      setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+      return;
+    }
     try {
-      const res = await axios.get('http://localhost:8080/api/foods', {
+      const res = await axios.get(`${API_BASE_URL}/api/foods`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMenu(res.data);
     } catch (err) {
       console.error(err);
-      Alert.alert('Error fetching menu');
+      setError('Error fetching menu');
+      setMenu([]);
     }
   };
 
@@ -72,117 +82,96 @@ export default function GroupItemsScreen() {
     );
   };
 
-  // Option 1: Add items one by one (current approach - works with your existing backend)
   const handleUpdateGroupOneByOne = async () => {
     if (selectedItems.length === 0) {
-      Alert.alert('Please select at least one item');
+      setError('Please select at least one item');
       return;
     }
-
     setIsSubmitting(true);
     const token = await AsyncStorage.getItem('token');
-    
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+      setIsSubmitting(false);
+      return;
+    }
     try {
-      // Add each item individually
       for (const item of selectedItems) {
         await axios.post(
-          `http://localhost:8080/api/groups/${groupId}/add-item?foodId=${item.id}&quantity=${item.quantity}`,
+          `${API_BASE_URL}/api/groups/${groupId}/add-item?foodId=${item.id}&quantity=${item.quantity}`,
           {},
-          { 
-            headers: { 
+          {
+            headers: {
               Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            } 
+              'Content-Type': 'application/json',
+            },
           }
         );
       }
-      
-      Alert.alert('Items added successfully!', '', [
-        {
-          text: 'OK',
-          onPress: () => router.push(`/screens/SubmitGroupScreen?groupId=${groupId}`)
-        }
-      ]);
-    } catch (err) {
+      router.push(`/screens/SubmitGroupScreen?groupId=${groupId}`);
+    } catch (err: any) {
       console.error('Error adding items:', err);
       if (err.response) {
-        console.error('Error response:', err.response.data);
-        Alert.alert('Error', `Failed to add items: ${err.response.data.message || err.response.status}`);
+        setError(`Failed to add items: ${err.response.data.message || err.response.status}`);
       } else {
-        Alert.alert('Error', 'Failed to add items');
+        setError('Failed to add items');
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Option 2: Add all items in a single request (more efficient)
-  const handleUpdateGroupBatch = async () => {
-    if (selectedItems.length === 0) {
-      Alert.alert('Please select at least one item');
-      return;
-    }
-
-    setIsSubmitting(true);
-    const token = await AsyncStorage.getItem('token');
-    
-    try {
-      // Transform selected items to match backend DTO
-      const foodOrders = selectedItems.map(item => ({
-        foodId: item.id,
-        quantity: item.quantity
-      }));
-
-      await axios.post(
-        `http://localhost:8080/api/groups/${groupId}/items`,
-        foodOrders,
-        { 
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          } 
-        }
-      );
-      
-      Alert.alert('Items added successfully!', '', [
-        {
-          text: 'OK',
-          onPress: () => router.push(`/screens/SubmitGroupScreen?groupId=${groupId}`)
-        }
-      ]);
-    } catch (err) {
-      console.error('Error adding items:', err);
-      if (err.response) {
-        console.error('Error response:', err.response.data);
-        Alert.alert('Error', `Failed to add items: ${err.response.data.message || err.response.status}`);
-      } else {
-        Alert.alert('Error', 'Failed to add items');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Quick add single item (immediate API call)
   const handleQuickAddItem = async (item: FoodItem) => {
     const token = await AsyncStorage.getItem('token');
-    
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+      return;
+    }
     try {
       await axios.post(
-        `http://localhost:8080/api/groups/${groupId}/add-item?foodId=${item.id}&quantity=1`,
+        `${API_BASE_URL}/api/groups/${groupId}/add-item?foodId=${item.id}&quantity=1`,
         {},
-        { 
-          headers: { 
+        {
+          headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          } 
+            'Content-Type': 'application/json',
+          },
         }
       );
-      
-      Alert.alert('Item added successfully!');
     } catch (err) {
       console.error('Error adding item:', err);
-      Alert.alert('Error', 'Failed to add item');
+      setError('Failed to add item');
+    }
+  };
+
+  const handleSubmitGroup = async () => {
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const token = await getToken();
+      if (!token) {
+        setError('Session expired. Please log in again.');
+        setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+        setIsSubmitting(false);
+        return;
+      }
+      await axios.post(
+        `${API_BASE_URL}/api/groups/${groupId}/submit`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      router.replace('/screens/WaiterDashboard');
+    } catch (err: any) {
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(`Failed to submit group: ${err.response.data.message}`);
+      } else {
+        setError('Failed to submit group');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -193,7 +182,9 @@ export default function GroupItemsScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Add Items to Group {groupId}</Text>
-      
+      {error && (
+        <Text style={{ color: 'red', textAlign: 'center', marginBottom: 10 }}>{error}</Text>
+      )}
       <Text style={styles.subheading}>Menu Items</Text>
       <FlatList
         data={menu}
@@ -252,25 +243,29 @@ export default function GroupItemsScreen() {
 
       <View style={styles.buttonContainer}>
         <Pressable 
-          style={[styles.submitBtn, styles.batchBtn, isSubmitting && styles.submitBtnDisabled]} 
-          onPress={handleUpdateGroupBatch}
-          disabled={isSubmitting}
-        >
-          <Text style={styles.submitText}>
-            {isSubmitting ? 'Adding Items...' : 'Add All Items (Batch)'}
-          </Text>
-        </Pressable>
-        
-        <Pressable 
           style={[styles.submitBtn, styles.oneByOneBtn, isSubmitting && styles.submitBtnDisabled]} 
           onPress={handleUpdateGroupOneByOne}
           disabled={isSubmitting}
         >
           <Text style={styles.submitText}>
-            {isSubmitting ? 'Adding Items...' : 'Add Items (One by One)'}
+            {isSubmitting ? 'Adding Items...' : 'Add Items'}
           </Text>
         </Pressable>
       </View>
+
+      {selectedItems.length > 0 && (
+        <View style={styles.submitGroupContainer}>
+          <Pressable 
+            style={[styles.submitGroupBtn, isSubmitting && styles.submitGroupBtnDisabled]} 
+            onPress={handleSubmitGroup}
+            disabled={isSubmitting}
+          >
+            <Text style={styles.submitGroupText}>
+              {isSubmitting ? 'Submitting...' : 'Submit Group'}
+            </Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
@@ -340,9 +335,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
-  batchBtn: {
-    backgroundColor: '#3B82F6',
-  },
   oneByOneBtn: {
     backgroundColor: '#8B5CF6',
   },
@@ -352,5 +344,18 @@ const styles = StyleSheet.create({
   submitText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   empty: { textAlign: 'center', color: '#888', marginTop: 20 },
   emptySelected: { textAlign: 'center', color: '#888', marginTop: 10, fontSize: 14 },
+  submitGroupContainer: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  submitGroupBtn: {
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  submitGroupBtnDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  submitGroupText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });
 

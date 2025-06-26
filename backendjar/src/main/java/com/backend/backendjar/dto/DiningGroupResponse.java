@@ -14,6 +14,7 @@ public class DiningGroupResponse {
     private Long id;
     private String groupName;
     private boolean submitted;
+    private boolean paid;
     private Date createdAt;
     private TableResponse table;
 }

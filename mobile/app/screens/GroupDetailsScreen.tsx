@@ -11,6 +11,8 @@ import {
 import axios from 'axios';
 import { useLocalSearchParams, router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../utils/config';
+import { getToken } from '../utils/session';
 
 type OrderItem = {
   id: number;
@@ -26,8 +28,10 @@ type Group = {
   id: number;
   groupName: string;
   submitted: boolean;
+  paid: boolean;
   createdAt: string;
   submittedAt?: string;
+  table: { tableNumber: string };
 };
 
 export default function GroupDetailsScreen() {
@@ -39,26 +43,38 @@ export default function GroupDetailsScreen() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const isReadOnly = readOnly === 'true';
 
   const fetchGroupDetails = async () => {
+    setError(null);
     const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      setGroup(null);
+      setItems([]);
+      setLoading(false);
+      setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+      return;
+    }
     try {
       // Fetch group info
-      const groupRes = await axios.get(`http://localhost:8080/api/groups/${groupId}`, {
+      const groupRes = await axios.get(`${API_BASE_URL}/api/groups/${groupId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setGroup(groupRes.data);
 
       // Fetch group items
-      const itemsRes = await axios.get(`http://localhost:8080/api/groups/${groupId}/items`, {
+      const itemsRes = await axios.get(`${API_BASE_URL}/api/groups/${groupId}/items`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setItems(itemsRes.data);
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to fetch group details');
+      setError('Failed to fetch group details');
+      setGroup(null);
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -78,6 +94,36 @@ export default function GroupDetailsScreen() {
     return item.food.price * item.quantity;
   };
 
+  const handleSubmitGroup = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) {
+        setError('Session expired. Please log in again.');
+        setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+        setLoading(false);
+        return;
+      }
+      await axios.post(
+        `${API_BASE_URL}/api/groups/${groupId}/submit`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      router.replace('/screens/WaiterDashboard');
+    } catch (err: any) {
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(`Failed to submit group: ${err.response.data.message}`);
+      } else {
+        setError('Failed to submit group');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchGroupDetails();
   }, []);
@@ -86,6 +132,17 @@ export default function GroupDetailsScreen() {
     return (
       <View style={[styles.container, styles.centered]}>
         <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.errorText}>{error}</Text>
+        <Pressable style={styles.backBtn} onPress={() => router.replace('/screens/LoginScreen')}>
+          <Text style={styles.backBtnText}>Go to Login</Text>
+        </Pressable>
       </View>
     );
   }
@@ -126,9 +183,8 @@ export default function GroupDetailsScreen() {
         group.submitted ? styles.submittedGroup : styles.draftGroup
       ]}>
         <Text style={styles.groupName}>{group.groupName}</Text>
-        <Text style={styles.groupDetail}>
-          Created: {new Date(group.createdAt).toLocaleString()}
-        </Text>
+        <Text style={styles.groupDetail}>Table: {group.table?.tableNumber || '-'}</Text>
+        <Text style={styles.groupDetail}>Created: {new Date(group.createdAt).toLocaleString()}</Text>
         {group.submittedAt && (
           <Text style={styles.groupDetail}>
             Submitted: {new Date(group.submittedAt).toLocaleString()}
@@ -142,6 +198,8 @@ export default function GroupDetailsScreen() {
             {group.submitted ? 'Submitted' : 'Draft'}
           </Text>
         </View>
+        <Text style={styles.groupDetail}>Paid: {group.paid ? 'Yes' : 'No'}</Text>
+        {group.paid && <Text style={{ color: 'green', fontWeight: 'bold', marginTop: 8 }}>This group is paid.</Text>}
       </View>
 
       <Text style={styles.sectionTitle}>
@@ -190,6 +248,15 @@ export default function GroupDetailsScreen() {
             onPress={() => router.push(`/screens/EditGroupScreen?groupId=${groupId}`)}
           >
             <Text style={styles.editBtnText}>Edit Order</Text>
+          </Pressable>
+        )}
+
+        {!isReadOnly && !group.submitted && (
+          <Pressable 
+            style={styles.submitBtn} 
+            onPress={handleSubmitGroup}
+          >
+            <Text style={styles.submitBtnText}>Submit Group</Text>
           </Pressable>
         )}
       </View>
@@ -395,6 +462,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   editBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  submitBtn: {
+    flex: 1,
+    backgroundColor: '#3b82f6',
+    padding: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  submitBtnText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',

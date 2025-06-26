@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, Button, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../utils/config';
 
 type Item = {
   id: number;
@@ -20,17 +21,54 @@ type Group = {
 export default function BillScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [group, setGroup] = useState<Group | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [closing, setClosing] = useState(false);
 
   const fetchGroup = async () => {
+    setError(null);
+    setLoading(true);
     const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      setGroup(null);
+      setLoading(false);
+      setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+      return;
+    }
     try {
-      const res = await axios.get(`http://localhost:8080/groups/${id}`, {
+      const res = await axios.get(`${API_BASE_URL}/groups/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setGroup(res.data);
     } catch (err) {
       console.error(err);
-      Alert.alert('Failed to load group');
+      setError('Failed to load group');
+      setGroup(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const closeBill = async () => {
+    setError(null);
+    setClosing(true);
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+      setClosing(false);
+      return;
+    }
+    try {
+      await axios.put(`${API_BASE_URL}/groups/${id}/close`, null, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      router.back();
+    } catch (err) {
+      setError('Error closing bill');
+    } finally {
+      setClosing(false);
     }
   };
 
@@ -41,19 +79,6 @@ export default function BillScreen() {
   const getTotal = () =>
     group?.items.reduce((acc, item) => acc + item.price * item.quantity, 0) ?? 0;
 
-  const closeBill = async () => {
-    const token = await AsyncStorage.getItem('token');
-    try {
-      await axios.put(`http://localhost:8080/groups/${id}/close`, null, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      Alert.alert('Bill Closed');
-      router.back();
-    } catch (err) {
-      Alert.alert('Error closing bill');
-    }
-  };
-
   const renderItem = ({ item }: { item: Item }) => (
     <View style={styles.item}>
       <Text style={styles.name}>{item.name}</Text>
@@ -62,7 +87,9 @@ export default function BillScreen() {
     </View>
   );
 
-  if (!group) return <Text>Loading...</Text>;
+  if (loading) return <Text style={{ textAlign: 'center', marginTop: 40 }}>Loading...</Text>;
+  if (error) return <Text style={{ color: 'red', textAlign: 'center', marginTop: 40 }}>{error}</Text>;
+  if (!group) return null;
 
   return (
     <View style={styles.container}>
@@ -73,7 +100,7 @@ export default function BillScreen() {
         renderItem={renderItem}
       />
       <Text style={styles.total}>Total: ₹{getTotal()}</Text>
-      <Button title="Close Bill" onPress={closeBill} />
+      <Button title={closing ? 'Closing...' : 'Close Bill'} onPress={closeBill} disabled={closing} />
     </View>
   );
 }

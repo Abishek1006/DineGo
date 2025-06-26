@@ -145,4 +145,25 @@ public class DiningGroupController {
         service.deleteGroup(groupId);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/paid")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<List<DiningGroup>> getPaidGroups() {
+        List<DiningGroup> groups = service.getPaidGroups();
+        return ResponseEntity.ok(groups);
+    }
+
+    @GetMapping("/unpaid")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<List<DiningGroup>> getUnpaidGroups() {
+        List<DiningGroup> groups = service.getUnpaidGroups();
+        return ResponseEntity.ok(groups);
+    }
+
+    @PutMapping("/{groupId}/mark-paid")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<DiningGroup> markGroupAsPaid(@PathVariable Long groupId) {
+        DiningGroup group = service.markGroupAsPaid(groupId);
+        return ResponseEntity.ok(group);
+    }
 }

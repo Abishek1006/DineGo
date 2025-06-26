@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, Alert, FlatList } from 'react-native
 import { useLocalSearchParams, router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { API_BASE_URL } from '../utils/config';
 
 type Item = {
   id: number;
@@ -13,35 +14,54 @@ type Item = {
 export default function SubmitGroupScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const [items, setItems] = useState<Item[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const fetchGroupItems = async () => {
+    setError(null);
     const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      setItems([]);
+      setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+      return;
+    }
     try {
-      const res = await axios.get(`http://localhost:8080/api/groups/${groupId}/items`, {
+      const res = await axios.get(`${API_BASE_URL}/api/groups/${groupId}/items`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setItems(res.data);
     } catch (err) {
       console.error(err);
-      Alert.alert('Failed to load items');
+      setError('Failed to load items');
+      setItems([]);
     }
   };
 
   const handleSubmitGroup = async () => {
+    setError(null);
+    setLoading(true);
     const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      setError('Session expired. Please log in again.');
+      setTimeout(() => router.replace('/screens/LoginScreen'), 1500);
+      setLoading(false);
+      return;
+    }
     try {
       await axios.post(
-        `http://localhost:8080/api/groups/${groupId}/submit`,
+        `${API_BASE_URL}/api/groups/${groupId}/submit`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      Alert.alert('Group submitted successfully!');
       router.replace('/screens/WaiterDashboard');
     } catch (err) {
       console.error(err);
-      Alert.alert('Failed to submit group');
+      setError('Failed to submit group');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -52,6 +72,9 @@ export default function SubmitGroupScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Submit Group #{groupId}</Text>
+      {error && (
+        <Text style={{ color: 'red', textAlign: 'center', marginBottom: 10 }}>{error}</Text>
+      )}
       <FlatList
         data={items}
         keyExtractor={item => item.id.toString()}
@@ -62,9 +85,8 @@ export default function SubmitGroupScreen() {
         )}
         ListEmptyComponent={<Text style={styles.empty}>No items found</Text>}
       />
-
-      <Pressable style={styles.button} onPress={handleSubmitGroup}>
-        <Text style={styles.buttonText}>Submit Group</Text>
+      <Pressable style={styles.button} onPress={handleSubmitGroup} disabled={loading}>
+        <Text style={styles.buttonText}>{loading ? 'Submitting...' : 'Submit Group'}</Text>
       </Pressable>
     </View>
   );

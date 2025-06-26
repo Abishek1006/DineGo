@@ -25,6 +25,7 @@ public class DiningGroup {
     @Column(name = "group_name")
     private String groupName;
     private boolean submitted;
+    private boolean paid = false;
     private Date createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
