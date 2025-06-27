@@ -1,8 +1,6 @@
 package com.backend.backendjar.service;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -37,7 +35,7 @@ public class JwtService {
 
     private Claims extractAllClaims(String token) {
         return Jwts
-                .parser() // ✅ not parserBuilder()
+                .parser() // ✅ Updated for jjwt 0.12.6
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)

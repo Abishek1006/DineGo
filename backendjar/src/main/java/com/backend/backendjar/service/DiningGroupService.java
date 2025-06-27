@@ -389,7 +389,9 @@ public class DiningGroupService {
         try {
             log.info("Retrieving all groups");
 
-            List<DiningGroup> allGroups = groupRepo.findAll();
+            Iterable<DiningGroup> groupsIterable = groupRepo.findAll();
+            List<DiningGroup> allGroups = new ArrayList<>();
+            groupsIterable.forEach(allGroups::add);
             log.info("Retrieved {} total groups", allGroups.size());
             return allGroups;
 

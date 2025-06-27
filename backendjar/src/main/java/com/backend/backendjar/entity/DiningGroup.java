@@ -35,4 +35,8 @@ public class DiningGroup {
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore  // Hide this to avoid circular reference
     private List<GroupSeat> groupSeats;
+    
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore  // Hide this to avoid circular reference
+    private List<OrderItem> orderItems;
 }
