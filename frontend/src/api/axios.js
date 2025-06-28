@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'https://backendins-gma5bxdcg4a3d9fh.westus3-01.azurewebsites.net';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
