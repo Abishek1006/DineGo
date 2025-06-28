@@ -22,10 +22,14 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns("*")   // Allows any frontend origin
-                .allowedMethods("*")          // Allows GET, POST, PUT, DELETE, etc.
-                .allowedHeaders("*")          // Allows all headers
-                .allowCredentials(true);      // Allows Authorization header (JWT)
+                .allowedOrigins(
+                    "http://localhost:5173",               // for local dev
+                    "https://dinego-ecst.onrender.com"     // your deployed frontend
+                )
+                .allowedMethods("*")
+                .allowedHeaders("*")
+                .allowCredentials(true);
     }
 }
+
 
