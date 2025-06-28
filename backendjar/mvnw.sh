@@ -1,4 +1,4 @@
-#!/bin/sh
+!/bin/sh
 # Trigger permission fix for Render
 # ----------------------------------------------------------------------------
 # Licensed to the Apache Software Foundation (ASF) under one
