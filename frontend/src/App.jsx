@@ -26,18 +26,10 @@ const AppRoutes = () => {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
       
       {/* Protected routes */}
-      <Route 
-        path="/register" 
-        element={
-          <ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>
-            <Register />
-          </ProtectedRoute>
-        } 
-      />
-      
       <Route 
         path="/waiter-dashboard" 
         element={
