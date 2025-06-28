@@ -10,6 +10,7 @@ import TableSeats from './pages/TableSeats';
 import GroupItems from './pages/GroupItems';
 import Unauthorized from './pages/Unauthorized';
 import WaiterActiveGroups from './pages/WaiterActiveGroups';
+import FoodManagement from './pages/FoodManagement';
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
@@ -53,6 +54,15 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['ADMIN']}>
             <AdminDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/food-management" 
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>
+            <FoodManagement />
           </ProtectedRoute>
         } 
       />

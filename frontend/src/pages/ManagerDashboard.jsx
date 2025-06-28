@@ -111,6 +111,12 @@ const ManagerDashboard = () => {
             </div>
             <div className="flex items-center space-x-4">
               <button
+                onClick={() => navigate('/food-management')}
+                className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                Manage Foods
+              </button>
+              <button
                 onClick={() => navigate('/register')}
                 className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700"
               >
