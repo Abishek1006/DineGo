@@ -23,13 +23,13 @@ public class CorsConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins(
-                    "http://localhost:5173",               // for local dev
-                    "https://dinego-ecst.onrender.com"     // your deployed frontend
+                        "http://localhost:5173",                          // local frontend
+                        "https://dinego-ecst.onrender.com",              // deployed frontend
+                        "https://empathetic-celebration-production.up.railway.app" // backend domain (if used by frontend)
                 )
                 .allowedMethods("*")
                 .allowedHeaders("*")
                 .allowCredentials(true);
     }
 }
-
 

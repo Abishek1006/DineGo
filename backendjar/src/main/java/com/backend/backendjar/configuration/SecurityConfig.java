@@ -41,11 +41,15 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
-    
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOriginPattern("*"); // Allow all origins with wildcard
+        config.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "https://dinego-ecst.onrender.com",
+                "https://empathetic-celebration-production.up.railway.app"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -75,4 +79,3 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
-
