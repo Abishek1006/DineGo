@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://backendins-gma5bxdcg4a3d9fh.westus3-01.azurewebsites.net';
+const API_BASE_URL = 'empathetic-celebration-production.up.railway.app';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
