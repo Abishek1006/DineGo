@@ -16,13 +16,10 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on app start
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
-    
-    if (token && role) {
-      setUser({ token, role });
-    }
+    // Clear any existing tokens on app start to force fresh login
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    setUser(null);
     setLoading(false);
   }, []);
 

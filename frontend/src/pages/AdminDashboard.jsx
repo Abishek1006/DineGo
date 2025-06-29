@@ -57,13 +57,20 @@ const AdminDashboard = () => {
           reportsAPI.getMonthlySales(),
           reportsAPI.getTableUsage(),
         ]);
-        setTopFoods(top);
-        setLeastFoods(least);
-        setMonthlySales(monthly);
-        setTableUsage(usage);
+        
+        // Ensure we have arrays, even if API returns null/undefined
+        setTopFoods(Array.isArray(top) ? top : []);
+        setLeastFoods(Array.isArray(least) ? least : []);
+        setMonthlySales(Array.isArray(monthly) ? monthly : []);
+        setTableUsage(Array.isArray(usage) ? usage : []);
       } catch (err) {
         setError('Failed to load reports. Please try again.');
         console.error('Error fetching reports:', err);
+        // Set empty arrays on error to prevent further issues
+        setTopFoods([]);
+        setLeastFoods([]);
+        setMonthlySales([]);
+        setTableUsage([]);
       } finally {
         setLoading(false);
       }
@@ -72,13 +79,13 @@ const AdminDashboard = () => {
     fetchReports();
   }, []);
 
-  // Chart configurations
+  // Chart configurations with safe array handling
   const topFoodsChartData = {
-    labels: topFoods.slice(0, 10).map(food => food.name),
+    labels: (topFoods || []).slice(0, 10).map(food => food?.name || 'Unknown'),
     datasets: [
       {
         label: 'Quantity Sold',
-        data: topFoods.slice(0, 10).map(food => food.totalQuantity),
+        data: (topFoods || []).slice(0, 10).map(food => food?.totalQuantity || 0),
         backgroundColor: 'rgba(54, 162, 235, 0.8)',
         borderColor: 'rgba(54, 162, 235, 1)',
         borderWidth: 1,
@@ -87,11 +94,11 @@ const AdminDashboard = () => {
   };
 
   const topFoodsRevenueData = {
-    labels: topFoods.slice(0, 10).map(food => food.name),
+    labels: (topFoods || []).slice(0, 10).map(food => food?.name || 'Unknown'),
     datasets: [
       {
         label: 'Revenue ($)',
-        data: topFoods.slice(0, 10).map(food => food.totalRevenue),
+        data: (topFoods || []).slice(0, 10).map(food => food?.totalRevenue || 0),
         backgroundColor: 'rgba(75, 192, 192, 0.8)',
         borderColor: 'rgba(75, 192, 192, 1)',
         borderWidth: 1,
@@ -100,11 +107,11 @@ const AdminDashboard = () => {
   };
 
   const monthlySalesData = {
-    labels: monthlySales.map(sale => `${sale.month}/${sale.year}`),
+    labels: (monthlySales || []).map(sale => `${sale?.month || 0}/${sale?.year || 0}`),
     datasets: [
       {
         label: 'Revenue ($)',
-        data: monthlySales.map(sale => sale.totalRevenue),
+        data: (monthlySales || []).map(sale => sale?.totalRevenue || 0),
         borderColor: 'rgba(255, 99, 132, 1)',
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
         fill: true,
@@ -112,7 +119,7 @@ const AdminDashboard = () => {
       },
       {
         label: 'Number of Groups',
-        data: monthlySales.map(sale => sale.totalGroups),
+        data: (monthlySales || []).map(sale => sale?.totalGroups || 0),
         borderColor: 'rgba(153, 102, 255, 1)',
         backgroundColor: 'rgba(153, 102, 255, 0.2)',
         fill: true,
@@ -122,11 +129,11 @@ const AdminDashboard = () => {
   };
 
   const tableUsageData = {
-    labels: tableUsage.map(table => `Table ${table.tableNumber}`),
+    labels: (tableUsage || []).map(table => `Table ${table?.tableNumber || 0}`),
     datasets: [
       {
         label: 'Usage Count',
-        data: tableUsage.map(table => table.usageCount),
+        data: (tableUsage || []).map(table => table?.usageCount || 0),
         backgroundColor: [
           'rgba(255, 99, 132, 0.8)',
           'rgba(54, 162, 235, 0.8)',
@@ -200,6 +207,58 @@ const AdminDashboard = () => {
     );
   }
 
+  // Check if we have any data to display
+  const hasData = (topFoods && topFoods.length > 0) || 
+                  (monthlySales && monthlySales.length > 0) || 
+                  (tableUsage && tableUsage.length > 0) || 
+                  (leastFoods && leastFoods.length > 0);
+
+  if (!loading && !hasData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        {/* Navigation Header */}
+        <div className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">DineGo Admin</h1>
+                <p className="text-gray-600">Restaurant Management System</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => navigate('/food-management')}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Manage Foods
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4">
+              No data available. The dashboard will populate once there are orders and sales data.
+            </div>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Navigation Header */}
@@ -248,7 +307,7 @@ const AdminDashboard = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Revenue</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    ${topFoods.reduce((sum, food) => sum + food.totalRevenue, 0).toFixed(2)}
+                    ${(topFoods || []).reduce((sum, food) => sum + (food?.totalRevenue || 0), 0).toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -264,7 +323,7 @@ const AdminDashboard = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Orders</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {topFoods.reduce((sum, food) => sum + food.totalQuantity, 0)}
+                    {(topFoods || []).reduce((sum, food) => sum + (food?.totalQuantity || 0), 0)}
                   </p>
                 </div>
               </div>
@@ -280,7 +339,7 @@ const AdminDashboard = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Groups</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {monthlySales.reduce((sum, sale) => sum + sale.totalGroups, 0)}
+                    {(monthlySales || []).reduce((sum, sale) => sum + (sale?.totalGroups || 0), 0)}
                   </p>
                 </div>
               </div>
@@ -296,7 +355,7 @@ const AdminDashboard = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Active Tables</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {tableUsage.filter(table => table.usageCount > 0).length}
+                    {(tableUsage || []).filter(table => (table?.usageCount || 0) > 0).length}
                   </p>
                 </div>
               </div>
@@ -344,17 +403,17 @@ const AdminDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {tableUsage.map((table, index) => (
-                      <tr key={table.tableId} className="border-b hover:bg-gray-50">
-                        <td className="py-2 px-4 font-medium">Table {table.tableNumber}</td>
-                        <td className="py-2 px-4">{table.usageCount}</td>
+                    {(tableUsage || []).map((table, index) => (
+                      <tr key={table?.tableId || index} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-4 font-medium">Table {table?.tableNumber || 'Unknown'}</td>
+                        <td className="py-2 px-4">{table?.usageCount || 0}</td>
                         <td className="py-2 px-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            table.usageCount > 0 
+                            (table?.usageCount || 0) > 0 
                               ? 'bg-green-100 text-green-800' 
                               : 'bg-gray-100 text-gray-800'
                           }`}>
-                            {table.usageCount > 0 ? 'Active' : 'Inactive'}
+                            {(table?.usageCount || 0) > 0 ? 'Active' : 'Inactive'}
                           </span>
                         </td>
                       </tr>
@@ -379,20 +438,20 @@ const AdminDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {leastFoods.slice(0, 10).map((food, index) => (
-                    <tr key={food.id} className="border-b hover:bg-gray-50">
-                      <td className="py-2 px-4 font-medium">{food.name}</td>
-                      <td className="py-2 px-4">{food.totalQuantity}</td>
-                      <td className="py-2 px-4">${food.totalRevenue.toFixed(2)}</td>
+                  {(leastFoods || []).slice(0, 10).map((food, index) => (
+                    <tr key={food?.id || index} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-4 font-medium">{food?.name || 'Unknown'}</td>
+                      <td className="py-2 px-4">{food?.totalQuantity || 0}</td>
+                      <td className="py-2 px-4">${(food?.totalRevenue || 0).toFixed(2)}</td>
                       <td className="py-2 px-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          food.totalQuantity === 0 
+                          (food?.totalQuantity || 0) === 0 
                             ? 'bg-red-100 text-red-800' 
-                            : food.totalQuantity < 5 
+                            : (food?.totalQuantity || 0) < 5 
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-green-100 text-green-800'
                         }`}>
-                          {food.totalQuantity === 0 ? 'No Sales' : food.totalQuantity < 5 ? 'Low' : 'Good'}
+                          {(food?.totalQuantity || 0) === 0 ? 'No Sales' : (food?.totalQuantity || 0) < 5 ? 'Low' : 'Good'}
                         </span>
                       </td>
                     </tr>
