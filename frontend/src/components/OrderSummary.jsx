@@ -74,7 +74,7 @@ const OrderSummary = ({ groupId, items, onItemsUpdate, onGroupSubmit, isSubmitte
             <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
               <div className="flex-1">
                 <h4 className="font-medium text-gray-900">{item.food?.name}</h4>
-                <p className="text-sm text-gray-600">${item.food?.price} each</p>
+                <p className="text-sm text-gray-600">₹{item.food?.price} each</p>
               </div>
               
               <div className="flex items-center space-x-3">
@@ -100,7 +100,7 @@ const OrderSummary = ({ groupId, items, onItemsUpdate, onGroupSubmit, isSubmitte
                 
                 <div className="text-right">
                   <p className="font-medium text-gray-900">
-                    ${((item.food?.price || 0) * item.quantity).toFixed(2)}
+                    ₹{((item.food?.price || 0) * item.quantity).toFixed(2)}
                   </p>
                   <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                 </div>
@@ -122,7 +122,7 @@ const OrderSummary = ({ groupId, items, onItemsUpdate, onGroupSubmit, isSubmitte
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold text-gray-900">Total:</span>
               <span className="text-2xl font-bold text-blue-600">
-                ${calculateTotal().toFixed(2)}
+                ₹{calculateTotal().toFixed(2)}
               </span>
             </div>
           </div>

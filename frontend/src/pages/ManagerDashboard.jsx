@@ -178,7 +178,7 @@ const ManagerDashboard = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-blue-600">
-                        ${calculateGroupTotal(group.id).toFixed(2)}
+                        ₹{calculateGroupTotal(group.id).toFixed(2)}
                       </p>
                       <p className="text-sm text-gray-500">
                         {items.length} items
@@ -202,7 +202,7 @@ const ManagerDashboard = () => {
                               {item.quantity}x {item.food?.name}
                             </span>
                             <span className="text-gray-600">
-                              ${((item.food?.price || 0) * item.quantity).toFixed(2)}
+                              ₹{((item.food?.price || 0) * item.quantity).toFixed(2)}
                             </span>
                           </div>
                         ))}
@@ -214,7 +214,7 @@ const ManagerDashboard = () => {
                     <div className="flex items-center space-x-2">
                       <span className="font-medium text-gray-900">Total:</span>
                       <span className="text-lg font-bold text-blue-600">
-                        ${calculateGroupTotal(group.id).toFixed(2)}
+                        ₹{calculateGroupTotal(group.id).toFixed(2)}
                       </span>
                     </div>
                     {/* Mark as Paid button for submitted, unpaid groups */}

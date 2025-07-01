@@ -307,7 +307,7 @@ const AdminDashboard = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Revenue</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    ${(topFoods || []).reduce((sum, food) => sum + (food?.totalRevenue || 0), 0).toFixed(2)}
+                    ₹{(topFoods || []).reduce((sum, food) => sum + (food?.totalRevenue || 0), 0).toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -442,7 +442,7 @@ const AdminDashboard = () => {
                     <tr key={food?.id || index} className="border-b hover:bg-gray-50">
                       <td className="py-2 px-4 font-medium">{food?.name || 'Unknown'}</td>
                       <td className="py-2 px-4">{food?.totalQuantity || 0}</td>
-                      <td className="py-2 px-4">${(food?.totalRevenue || 0).toFixed(2)}</td>
+                      <td className="py-2 px-4">₹{(food?.totalRevenue || 0).toFixed(2)}</td>
                       <td className="py-2 px-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           (food?.totalQuantity || 0) === 0 

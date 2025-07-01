@@ -6,7 +6,7 @@ const FoodCard = ({ food, onEdit, onDelete, showActions = false, isManager = fal
       <div className="flex justify-between items-start mb-3">
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-gray-900 mb-1">{food.name}</h3>
-          <p className="text-2xl font-bold text-blue-600">${food.price.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-blue-600">₹{food.price.toFixed(2)}</p>
           <p className="text-sm text-gray-500 mt-1">ID: #{food.id}</p>
         </div>
         

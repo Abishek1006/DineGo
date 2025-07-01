@@ -192,7 +192,7 @@ const FoodManagement = () => {
               
               <div>
                 <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
-                  Price ($)
+                  Price (₹)
                 </label>
                 <input
                   type="number"
@@ -343,7 +343,7 @@ const FoodManagement = () => {
                         <div className="text-sm font-medium text-gray-900">{food.name}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 font-semibold">${food.price.toFixed(2)}</div>
+                        <div className="text-sm text-gray-900 font-semibold">₹{food.price.toFixed(2)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">#{food.id}</div>

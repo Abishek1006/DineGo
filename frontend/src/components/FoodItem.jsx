@@ -15,7 +15,7 @@ const FoodItem = ({ food, onAddToOrder, disabled = false }) => {
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">{food.name}</h3>
-          <p className="text-2xl font-bold text-blue-600">${food.price}</p>
+          <p className="text-2xl font-bold text-blue-600">₹{food.price}</p>
         </div>
       </div>
       
