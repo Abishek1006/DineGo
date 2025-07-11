@@ -26,13 +26,25 @@ const WaiterActiveGroups = () => {
     }
   };
 
+  const handleBackToDashboard = () => {
+    console.log("Enter in to handling tranform");
+    // Navigate to the appropriate dashboard based on user role
+    if (user?.role === 'ADMIN') {
+      navigate('/admin-dashboard');
+    } else if (user?.role === 'MANAGER') {
+      navigate('/manager-dashboard');
+    } else {
+      navigate('/waiter-dashboard');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Active Groups</h1>
           <button
-            onClick={() => navigate('/waiter-dashboard')}
+            onClick={handleBackToDashboard}
             className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700"
           >
             Back to Dashboard
@@ -63,6 +75,7 @@ const WaiterActiveGroups = () => {
                       className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
                     >
                       Edit Order
+                      
                     </button>
                   </div>
                 </div>

@@ -28,8 +28,8 @@ public class AuthService {
                                  !SecurityContextHolder.getContext().getAuthentication().getName().equals("anonymousUser");
         
         // If not authenticated, restrict to WAITER role only
-        if (!isAuthenticated && request.getRole() != Role.MANAGER) {
-            throw new RuntimeException("Public registration is only allowed for Manager role");
+        if (!isAuthenticated && request.getRole() != Role.WAITER) {
+            throw new RuntimeException("Public registration is only allowed for waiter");
         }
         
         // Check if username already exists

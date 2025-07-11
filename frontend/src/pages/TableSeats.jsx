@@ -36,6 +36,17 @@ const TableSeats = () => {
       setLoading(false);
     }
   };
+    const handleBackToDashboard = () => {
+    console.log("Enter in to handling tranform");
+    // Navigate to the appropriate dashboard based on user role
+    if (user?.role === 'ADMIN') {
+      navigate('/admin-dashboard');
+    } else if (user?.role === 'MANAGER') {
+      navigate('/manager-dashboard');
+    } else {
+      navigate('/waiter-dashboard');
+    }
+  };
 
   if (loading) {
     return (
@@ -52,7 +63,7 @@ const TableSeats = () => {
           <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
-            onClick={() => navigate('/waiter-dashboard')}
+            onClick={handleBackToDashboard}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Back to Dashboard

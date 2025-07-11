@@ -59,12 +59,7 @@ const WaiterDashboard = () => {
               >
                 Active Groups
               </button>
-              <button
-                onClick={() => navigate('/register')}
-                className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700"
-              >
-                Create User
-              </button>
+              
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700"

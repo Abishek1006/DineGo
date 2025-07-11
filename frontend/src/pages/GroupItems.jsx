@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { foodsAPI, groupsAPI } from '../api';
+import { useAuth } from '../context/AuthContext';
 import FoodItem from '../components/FoodItem';
 import OrderSummary from '../components/OrderSummary';
 
@@ -15,6 +16,7 @@ const GroupItems = () => {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchData();
@@ -55,6 +57,17 @@ const GroupItems = () => {
   const handleItemsUpdate = () => {
     fetchData();
   };
+    const handleBackToDashboard = () => {
+    console.log("Enter in to handling tranform");
+    // Navigate to the appropriate dashboard based on user role
+    if (user?.role === 'ADMIN') {
+      navigate('/admin-dashboard');
+    } else if (user?.role === 'MANAGER') {
+      navigate('/manager-dashboard');
+    } else {
+      navigate('/waiter-dashboard');
+    }
+  };
 
   const handleGroupSubmit = () => {
     setIsSubmitted(true);
@@ -83,7 +96,7 @@ const GroupItems = () => {
               </p>
             </div>
             <button
-              onClick={() => navigate('/waiter-dashboard')}
+              onClick={handleBackToDashboard}
               className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700"
             >
               Back to Dashboard
