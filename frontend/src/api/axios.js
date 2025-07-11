@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'https://backendjar-latest.onrender.com';
+//http://localhost:8080';
 //https://empathetic-celebration-production.up.railway.app
 
 const api = axios.create({
