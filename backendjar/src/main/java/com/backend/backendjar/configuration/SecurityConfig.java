@@ -46,6 +46,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
+            "https://backendjar-latest.onrender.com",
                 "http://localhost:5173",
                 "https://dinego-ecst.onrender.com",
                 "https://empathetic-celebration-production.up.railway.app"
